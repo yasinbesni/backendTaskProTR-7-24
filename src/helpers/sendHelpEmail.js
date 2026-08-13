@@ -86,12 +86,16 @@ export const sendHelpEmail = async (userEmail, comment) => {
       to: `${userEmail}`,
       subject: 'TaskPro destek talebiniz alındı',
       html: `
-        <h3>Yeni Yardım İsteği</h3>
+        <h3>TaskPro Destek Talebi</h3>
         <p><strong>Yasin</strong> (TaskPro)</p>
         <p>Öncelikle bizi tercih ettiğiniz için teşekkür ederiz.</p>
         <p>Destek talebiniz başarıyla alındı. En kısa sürede dönüş yapılacaktır.</p>
         <p><strong>Not:</strong> Bu e-posta otomatik olarak oluşturulmuştur. Lütfen cevaplamayınız.</p>
         <p><strong>Sağlıklı günler dileriz.</strong></p>
+        <br />
+        <p><strong>Saygılarımla</strong></p>
+        <p><strong>Yasin</strong></p>
+        <p>TaskPro Müşteri Hizmetleri</p>
       `,
     };
     await transporter.sendMail(mailOptions2);
