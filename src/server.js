@@ -18,7 +18,10 @@ export const setupServer = async () => {
   const port = process.env.PORT || 3000;
 
   app.use(
-    express.json({ type: ["application/json", "application/vnd.api+json"] })
+    express.json({
+      limit: "2mb",
+      type: ["application/json", "application/vnd.api+json"],
+    })
   );
   
   const logger = pino({

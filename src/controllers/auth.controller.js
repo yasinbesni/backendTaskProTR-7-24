@@ -33,9 +33,7 @@ const register = async (req, res, next) => {
       user.theme = theme;
     }
 
-    console.log(`[REGISTER DEBUG] Before save - password: ${user.password}`);
     await user.save();
-    console.log(`[REGISTER DEBUG] After save - password (hashed): ${user.password?.substring(0, 10)}...`);
 
     // Generate token
     const token = generateToken(user);
@@ -69,13 +67,11 @@ const login = async (req, res, next) => {
     const user = await User.findOne({ email }).select('+password');
     
     if (!user) {
-      console.log(`[LOGIN DEBUG] User not found for email: ${email}`);
       throw new ApiError(401, 'Invalid credentials');
     }
 
     // Check password
     const isPasswordMatch = await user.comparePassword(password);
-    console.log(`[LOGIN DEBUG] Email: ${email}, Password match: ${isPasswordMatch}, Provided password: ${password}`);
     if (!isPasswordMatch) {
       throw new ApiError(401, 'Invalid credentials');
     }
@@ -135,6 +131,7 @@ const getCurrentUser = async (req, res, next) => {
 const updateProfile = async (req, res, next) => {
   try {
     const { name, email, password, avatar, theme } = req.body;
+    let previousCloudinaryAvatar = null;
 
     const user = await User.findById(req.user.id);
 
@@ -157,13 +154,13 @@ const updateProfile = async (req, res, next) => {
     
     // Handle avatar upload to Cloudinary
     if (avatar && avatar.startsWith('data:image')) {
-      // Delete old avatar from Cloudinary if exists
-      if (user.avatar && user.avatar.includes('cloudinary.com')) {
-        await deleteFromCloudinary(user.avatar);
-      }
-      
-      // Upload new avatar
+      // Upload first so a failed upload never removes the current avatar.
       const cloudinaryUrl = await uploadToCloudinary(avatar, 'taskpro/avatars');
+
+      if (user.avatar && user.avatar.includes('cloudinary.com')) {
+        previousCloudinaryAvatar = user.avatar;
+      }
+
       user.avatar = cloudinaryUrl;
     } else if (avatar !== undefined) {
       user.avatar = avatar;
@@ -172,6 +169,11 @@ const updateProfile = async (req, res, next) => {
     if (password) user.password = password; // Will be hashed by pre-save hook
 
     await user.save();
+
+    // The new avatar is safely stored before the old Cloudinary asset is removed.
+    if (previousCloudinaryAvatar) {
+      await deleteFromCloudinary(previousCloudinaryAvatar);
+    }
 
     res.status(200).json({
       success: true,

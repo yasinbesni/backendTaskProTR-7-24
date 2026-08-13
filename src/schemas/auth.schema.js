@@ -12,7 +12,13 @@ export const updateProfileSchema = Joi.object({
 	name: Joi.string().min(2).max(40).optional(),
 	email: Joi.string().email().optional(),
 	password: passwordRule.optional(),
-	avatar: Joi.string().allow(null, "").optional(),
+	avatar: Joi.string()
+		.max(2 * 1024 * 1024)
+		.allow(null, "")
+		.optional()
+		.messages({
+			'string.max': 'Avatar image is too large',
+		}),
 	theme: Joi.string().valid("light", "dark", "violet", "Light", "Violet", "Dark").optional(),
 }).min(1);
 

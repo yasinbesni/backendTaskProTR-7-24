@@ -1,12 +1,8 @@
-import cloudinary from 'cloudinary';
 import ApiError from '../helpers/ApiError.js';
+import { configureCloudinary } from '../config/cloudinary.js';
 
-// Configure Cloudinary
-cloudinary.v2.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const supportedImageDataUrl =
+  /^data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 
 /**
  * Upload image to Cloudinary
@@ -20,11 +16,19 @@ export const uploadToCloudinary = async (base64Image, folder = 'taskpro') => {
       throw ApiError.BadRequest('No image provided');
     }
 
-    const result = await cloudinary.v2.uploader.upload(base64Image, {
+    if (!supportedImageDataUrl.test(base64Image)) {
+      throw ApiError.BadRequest(
+        'Avatar must be a valid JPG, PNG or WEBP image.'
+      );
+    }
+
+    const cloudinaryClient = configureCloudinary();
+
+    const result = await cloudinaryClient.uploader.upload(base64Image, {
       folder: folder,
-      resource_type: 'auto',
+      resource_type: 'image',
       transformation: [
-        { width: 1000, height: 1000, crop: 'limit' },
+        { width: 512, height: 512, crop: 'limit' },
         { quality: 'auto' },
         { fetch_format: 'auto' }
       ]
@@ -32,8 +36,17 @@ export const uploadToCloudinary = async (base64Image, folder = 'taskpro') => {
 
     return result.secure_url;
   } catch (error) {
-    console.error('Cloudinary upload error:', error);
-    throw ApiError.InternalServerError('Failed to upload image');
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    console.error('Cloudinary avatar upload error:', {
+      message: error.message,
+      httpCode: error.http_code,
+    });
+    throw ApiError.InternalServerError(
+      'Avatar upload failed. Please try another image.'
+    );
   }
 };
 
@@ -48,12 +61,32 @@ export const deleteFromCloudinary = async (imageUrl) => {
       return false;
     }
 
-    // Extract public_id from URL
-    const urlParts = imageUrl.split('/');
-    const publicIdWithExtension = urlParts.slice(-2).join('/'); // folder/filename.ext
-    const publicId = publicIdWithExtension.split('.')[0]; // remove extension
+    const cloudinaryClient = configureCloudinary();
+    const url = new URL(imageUrl);
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    const uploadIndex = pathParts.indexOf('upload');
 
-    const result = await cloudinary.v2.uploader.destroy(publicId);
+    if (uploadIndex === -1) {
+      return false;
+    }
+
+    const afterUpload = pathParts.slice(uploadIndex + 1);
+    const versionIndex = afterUpload.findIndex((part) => /^v\d+$/.test(part));
+    const publicIdParts = afterUpload.slice(
+      versionIndex === -1 ? 0 : versionIndex + 1
+    );
+    const publicId = decodeURIComponent(publicIdParts.join('/')).replace(
+      /\.[^/.]+$/,
+      ''
+    );
+
+    if (!publicId) {
+      return false;
+    }
+
+    const result = await cloudinaryClient.uploader.destroy(publicId, {
+      resource_type: 'image',
+    });
     return result.result === 'ok';
   } catch (error) {
     console.error('Cloudinary delete error:', error);
