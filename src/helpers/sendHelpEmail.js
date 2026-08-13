@@ -64,11 +64,11 @@ export const sendHelpEmail = async (userEmail, comment) => {
     const mailOptions = {
       from: `"TaskPro Help" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@taskpro.com'}>`,
       to: process.env.SMTP_TO || 'yedekclasor@gmail.com',
-      subject: 'New Help Request',
+      subject: 'TaskPro Yardım Talebi',
       html: `
-        <h3>New Help Request</h3>
-        <p><strong>User Email:</strong> ${userEmail}</p>
-        <p><strong>Comment:</strong></p>
+        <h3>Yeni Yardım İsteği</h3>
+        <p><strong>Kullanıcı E-posta:</strong> ${userEmail}</p>
+        <p><strong>Yorum:</strong></p>
         <p>${comment}</p>
       `,
     };
