@@ -62,8 +62,8 @@ export const sendHelpEmail = async (userEmail, comment) => {
     }
 
     const mailOptions = {
-      from: `"TaskPro Help" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@taskpro.com'}>`,
-      to: process.env.SMTP_TO || 'yedekclasor@gmail.com',
+      from: `"TaskPro Yardım Talebi" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@taskpro.com'}>`,
+      to: process.env.SMTP_TO || 'task@gmail.com',
       subject: 'TaskPro Yardım Talebi',
       html: `
         <h3>Yeni Yardım İsteği</h3>
@@ -80,7 +80,21 @@ export const sendHelpEmail = async (userEmail, comment) => {
     
     if (process.env.NODE_ENV !== 'production') {
       console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
-    }
+    } 
+    const mailOptions2 = {
+      from: `"TaskPro" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@taskpro.com'}>`,
+      to: `${userEmail}`,
+      subject: 'TaskPro destek talebiniz alındı',
+      html: `
+        <h3>Yeni Yardım İsteği</h3>
+        <p><strong>Yasin</strong> (TaskPro)</p>
+        <p>Öncelikle bizi tercih ettiğiniz için teşekkür ederiz.</p>
+        <p>Destek talebiniz başarıyla alındı. En kısa sürede dönüş yapılacaktır.</p>
+        <p><strong>Not:</strong> Bu e-posta otomatik olarak oluşturulmuştur. Lütfen cevaplamayınız.</p>
+        <p><strong>Sağlıklı günler dileriz.</strong></p>
+      `,
+    };
+    await transporter.sendMail(mailOptions2);
   } catch (error) {
     console.error('❌ Error sending help email:', error.message);
     throw error;
